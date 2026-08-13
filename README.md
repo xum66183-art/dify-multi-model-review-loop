@@ -56,6 +56,14 @@ See [`docs/architecture.md`](docs/architecture.md) for the project architecture 
 
 See [`docs/demo.md`](docs/demo.md) for a complete example that follows a request through generation, review, scoring, optional repair, and final output.
 
+## Latest Release
+
+The latest stable release is:
+
+**v0.2.0 - Configurable review workflow**
+
+See [Releases](https://github.com/xum66183-art/dify-multi-model-review-loop/releases) for version history.
+
 ## Features
 
 - Multi-model generation and review
@@ -137,35 +145,39 @@ dify-multi-model-review-loop/
 
 ## Project Status
 
-🚧 **Early Development**
+✅ **Active Development**
 
-The first reusable workflow templates and documentation are currently being prepared.
+Current release: **v0.2.0**
 
-The initial public release will focus on the core:
+The project provides a working Dify multi-model review workflow with:
 
-**Generate → Review → Score → Repair → Human Review**
+- Multi-model generation and review
+- Structured scoring
+- Configurable review threshold
+- Repair and re-review loop
+- Documentation and examples
 
-pipeline.
+Future development will focus on improving usability, testing, and community feedback.
 
 ## Roadmap
 
 ### v0.1.0
 
-- [ ] Basic Dify review-loop workflow
-- [ ] Generator prompt template
-- [ ] Reviewer prompt template
-- [ ] Structured scoring output
-- [ ] Automatic repair workflow
-- [ ] Example input/output
-- [ ] Installation documentation
+- [x] Basic Dify review loop workflow
+- [x] Generator prompt template
+- [x] Reviewer prompt template
+- [x] Structured scoring output
+- [x] Automatic repair workflow
+- [x] Example input/output
+- [x] Installation documentation
 
 ### v0.2.0
 
-- [ ] Multi-provider configuration examples
-- [ ] Improved structured-output handling
-- [ ] Reviewer failure fallback
-- [ ] Human-review fallback
-- [ ] Additional workflow examples
+- [x] Multi-provider configuration examples
+- [x] Configurable review threshold
+- [x] Improved workflow documentation
+- [x] Demo documentation
+- [x] Workflow explanation
 
 ## Contributing
 

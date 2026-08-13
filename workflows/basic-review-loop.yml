@@ -1,0 +1,494 @@
+# Dify workflow DSL template: Basic Multi-Model Review Loop
+# Import this file into Dify, then select models for the Generator, Reviewer,
+# Repair, and Re-review LLM nodes. Provider and model names are intentionally
+# left blank so the template is not tied to one model vendor.
+
+app:
+  description: A provider-agnostic generation, review, scoring, and repair workflow.
+  icon: "🔍"
+  icon_background: "#E4FBCC"
+  mode: workflow
+  name: Basic Multi-Model Review Loop
+  use_icon_as_answer_icon: false
+
+dependencies: []
+kind: app
+version: 0.3.0
+
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ""
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+
+  graph:
+    edges:
+      # User input starts the initial generation.
+      - id: start-generator
+        source: start
+        sourceHandle: source
+        target: generator
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: start
+          targetType: llm
+          isInLoop: false
+      # The independent reviewer evaluates the generated result.
+      - id: generator-reviewer
+        source: generator
+        sourceHandle: source
+        target: reviewer
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: llm
+          targetType: llm
+          isInLoop: false
+      # Parse the reviewer's fixed JSON and compare score with threshold.
+      - id: reviewer-parse
+        source: reviewer
+        sourceHandle: source
+        target: parse-review
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: llm
+          targetType: code
+          isInLoop: false
+      - id: parse-decision
+        source: parse-review
+        sourceHandle: source
+        target: decision
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: code
+          targetType: if-else
+          isInLoop: false
+      # Passing results are returned directly.
+      - id: decision-pass
+        source: decision
+        sourceHandle: "true"
+        target: final-pass
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: if-else
+          targetType: end
+          isInLoop: false
+      # Failed results go to a repair model.
+      - id: decision-repair
+        source: decision
+        sourceHandle: "false"
+        target: repair
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: if-else
+          targetType: llm
+          isInLoop: false
+      # The repaired result is independently reviewed again.
+      - id: repair-rereview
+        source: repair
+        sourceHandle: source
+        target: re-review
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: llm
+          targetType: llm
+          isInLoop: false
+      - id: rereview-parse
+        source: re-review
+        sourceHandle: source
+        target: parse-re-review
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: llm
+          targetType: code
+          isInLoop: false
+      - id: parse-final
+        source: parse-re-review
+        sourceHandle: source
+        target: final-repaired
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: code
+          targetType: end
+          isInLoop: false
+
+    nodes:
+      # Collect a general task plus a configurable passing score.
+      - id: start
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 0, y: 250}
+        positionAbsolute: {x: 0, y: 250}
+        width: 244
+        height: 116
+        data:
+          type: start
+          title: User Input
+          desc: Collects the task and review threshold.
+          selected: false
+          variables:
+            - variable: user_input
+              label: User Input
+              type: paragraph
+              required: true
+              max_length: 10000
+              options: []
+            - variable: threshold
+              label: Passing Score
+              type: number
+              required: true
+              default: 80
+              options: []
+
+      # Produces the first candidate response.
+      - id: generator
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 320, y: 250}
+        positionAbsolute: {x: 320, y: 250}
+        width: 244
+        height: 140
+        data:
+          type: llm
+          title: Generator Model
+          desc: Generates an initial result from the user request.
+          selected: false
+          context:
+            enabled: false
+            variable_selector: []
+          memory:
+            role_prefix: {assistant: "", user: ""}
+            window: {enabled: false, size: 10}
+          model:
+            provider: ""
+            name: ""
+            mode: chat
+            completion_params:
+              temperature: 0.4
+          prompt_template:
+            - id: generator-system
+              role: system
+              text: |-
+                You are a general-purpose generator. Complete the requested task accurately and clearly.
+                Return only the result that should be reviewed.
+            - id: generator-user
+              role: user
+              text: "{{#start.user_input#}}"
+          structured_output_enabled: false
+          vision: {enabled: false}
+
+      # Reviews independently and must return the fixed JSON contract.
+      - id: reviewer
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 640, y: 250}
+        positionAbsolute: {x: 640, y: 250}
+        width: 244
+        height: 140
+        data:
+          type: llm
+          title: Reviewer Model
+          desc: Scores the initial result independently.
+          selected: false
+          context:
+            enabled: false
+            variable_selector: []
+          memory:
+            role_prefix: {assistant: "", user: ""}
+            window: {enabled: false, size: 10}
+          model:
+            provider: ""
+            name: ""
+            mode: chat
+            completion_params:
+              temperature: 0
+          prompt_template:
+            - id: reviewer-system
+              role: system
+              text: |-
+                You are an independent quality reviewer. Evaluate correctness, completeness,
+                consistency, and requirement compliance. Return valid JSON only, using exactly:
+                {"score": 0, "pass": false, "issues": [], "suggestions": []}
+            - id: reviewer-user
+              role: user
+              text: |-
+                Original request:
+                {{#start.user_input#}}
+
+                Candidate result:
+                {{#generator.text#}}
+          structured_output_enabled: false
+          vision: {enabled: false}
+
+      # Converts reviewer JSON to stable workflow variables and applies threshold.
+      - id: parse-review
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 960, y: 250}
+        positionAbsolute: {x: 960, y: 250}
+        width: 244
+        height: 98
+        data:
+          type: code
+          title: Structured Score
+          desc: Parses reviewer JSON and checks score against the configured threshold.
+          selected: false
+          code_language: python3
+          variables:
+            - variable: review_json
+              value_selector: [reviewer, text]
+            - variable: threshold
+              value_selector: [start, threshold]
+          outputs:
+            score: {type: number, children: null}
+            passed: {type: boolean, children: null}
+            review: {type: string, children: null}
+          code: |-
+            import json
+
+            def main(review_json: str, threshold: float) -> dict:
+                try:
+                    data = json.loads(review_json)
+                except Exception:
+                    data = {
+                        "score": 0,
+                        "pass": False,
+                        "issues": ["Reviewer returned invalid JSON."],
+                        "suggestions": ["Run the review again with JSON-only output."]
+                    }
+                score = max(0, min(100, float(data.get("score", 0))))
+                return {
+                    "score": score,
+                    "passed": score >= float(threshold),
+                    "review": json.dumps(data, ensure_ascii=False)
+                }
+
+      # Routes pass to final output and fail to repair.
+      - id: decision
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 1280, y: 250}
+        positionAbsolute: {x: 1280, y: 250}
+        width: 244
+        height: 126
+        data:
+          type: if-else
+          title: Decision
+          desc: Passes when score is at or above the threshold.
+          selected: false
+          cases:
+            - case_id: "true"
+              logical_operator: and
+              conditions:
+                - id: score-passed
+                  variable_selector: [parse-review, passed]
+                  comparison_operator: is
+                  value: true
+                  varType: boolean
+
+      # Returns the initial output when it passes review.
+      - id: final-pass
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 1600, y: 100}
+        positionAbsolute: {x: 1600, y: 100}
+        width: 244
+        height: 110
+        data:
+          type: end
+          title: Final Output
+          desc: Returns the accepted initial result and review metadata.
+          selected: false
+          outputs:
+            - variable: result
+              value_selector: [generator, text]
+            - variable: score
+              value_selector: [parse-review, score]
+            - variable: review
+              value_selector: [parse-review, review]
+
+      # Repairs the failed candidate using the review feedback.
+      - id: repair
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 1600, y: 400}
+        positionAbsolute: {x: 1600, y: 400}
+        width: 244
+        height: 140
+        data:
+          type: llm
+          title: Repair Model
+          desc: Revises the candidate according to reviewer issues and suggestions.
+          selected: false
+          context:
+            enabled: false
+            variable_selector: []
+          memory:
+            role_prefix: {assistant: "", user: ""}
+            window: {enabled: false, size: 10}
+          model:
+            provider: ""
+            name: ""
+            mode: chat
+            completion_params:
+              temperature: 0.2
+          prompt_template:
+            - id: repair-system
+              role: system
+              text: |-
+                You repair a candidate result using independent review feedback.
+                Preserve correct parts, fix identified issues, and return only the revised result.
+            - id: repair-user
+              role: user
+              text: |-
+                Original request:
+                {{#start.user_input#}}
+
+                Candidate result:
+                {{#generator.text#}}
+
+                Review JSON:
+                {{#parse-review.review#}}
+          structured_output_enabled: false
+          vision: {enabled: false}
+
+      # Repeats independent review after repair.
+      - id: re-review
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 1920, y: 400}
+        positionAbsolute: {x: 1920, y: 400}
+        width: 244
+        height: 140
+        data:
+          type: llm
+          title: Reviewer Model (Re-review)
+          desc: Reviews the repaired result using the same quality dimensions.
+          selected: false
+          context:
+            enabled: false
+            variable_selector: []
+          memory:
+            role_prefix: {assistant: "", user: ""}
+            window: {enabled: false, size: 10}
+          model:
+            provider: ""
+            name: ""
+            mode: chat
+            completion_params:
+              temperature: 0
+          prompt_template:
+            - id: rereview-system
+              role: system
+              text: |-
+                You are an independent quality reviewer. Evaluate correctness, completeness,
+                consistency, and requirement compliance. Return valid JSON only, using exactly:
+                {"score": 0, "pass": false, "issues": [], "suggestions": []}
+            - id: rereview-user
+              role: user
+              text: |-
+                Original request:
+                {{#start.user_input#}}
+
+                Repaired result:
+                {{#repair.text#}}
+          structured_output_enabled: false
+          vision: {enabled: false}
+
+      # Parses the second review for the final response metadata.
+      - id: parse-re-review
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 2240, y: 400}
+        positionAbsolute: {x: 2240, y: 400}
+        width: 244
+        height: 98
+        data:
+          type: code
+          title: Re-review Score
+          desc: Parses the second reviewer JSON.
+          selected: false
+          code_language: python3
+          variables:
+            - variable: review_json
+              value_selector: [re-review, text]
+          outputs:
+            score: {type: number, children: null}
+            review: {type: string, children: null}
+          code: |-
+            import json
+
+            def main(review_json: str) -> dict:
+                try:
+                    data = json.loads(review_json)
+                except Exception:
+                    data = {
+                        "score": 0,
+                        "pass": False,
+                        "issues": ["Re-review returned invalid JSON."],
+                        "suggestions": ["Inspect the repaired result manually."]
+                    }
+                score = max(0, min(100, float(data.get("score", 0))))
+                return {
+                    "score": score,
+                    "review": json.dumps(data, ensure_ascii=False)
+                }
+
+      # Returns the repaired result together with the second review.
+      - id: final-repaired
+        type: custom
+        sourcePosition: right
+        targetPosition: left
+        position: {x: 2560, y: 400}
+        positionAbsolute: {x: 2560, y: 400}
+        width: 244
+        height: 110
+        data:
+          type: end
+          title: Final Repaired Output
+          desc: Returns the repaired result and re-review metadata.
+          selected: false
+          outputs:
+            - variable: result
+              value_selector: [repair, text]
+            - variable: score
+              value_selector: [parse-re-review, score]
+            - variable: review
+              value_selector: [parse-re-review, review]
+
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.65
+
+  rag_pipeline_variables: []

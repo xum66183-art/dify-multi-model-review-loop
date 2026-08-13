@@ -13,7 +13,7 @@ app:
 
 dependencies: []
 kind: app
-version: 0.3.0
+version: 0.7.0
 
 workflow:
   conversation_variables: []
@@ -46,7 +46,9 @@ workflow:
         data:
           sourceType: start
           targetType: llm
+          isInIteration: false
           isInLoop: false
+        zIndex: 0
       # The independent reviewer evaluates the generated result.
       - id: generator-reviewer
         source: generator
@@ -57,7 +59,9 @@ workflow:
         data:
           sourceType: llm
           targetType: llm
+          isInIteration: false
           isInLoop: false
+        zIndex: 0
       # Parse the reviewer's fixed JSON and compare score with threshold.
       - id: reviewer-parse
         source: reviewer
@@ -68,7 +72,9 @@ workflow:
         data:
           sourceType: llm
           targetType: code
+          isInIteration: false
           isInLoop: false
+        zIndex: 0
       - id: parse-decision
         source: parse-review
         sourceHandle: source
@@ -78,7 +84,9 @@ workflow:
         data:
           sourceType: code
           targetType: if-else
+          isInIteration: false
           isInLoop: false
+        zIndex: 0
       # Passing results are returned directly.
       - id: decision-pass
         source: decision
@@ -89,7 +97,9 @@ workflow:
         data:
           sourceType: if-else
           targetType: end
+          isInIteration: false
           isInLoop: false
+        zIndex: 0
       # Failed results go to a repair model.
       - id: decision-repair
         source: decision
@@ -100,7 +110,9 @@ workflow:
         data:
           sourceType: if-else
           targetType: llm
+          isInIteration: false
           isInLoop: false
+        zIndex: 0
       # The repaired result is independently reviewed again.
       - id: repair-rereview
         source: repair
@@ -111,7 +123,9 @@ workflow:
         data:
           sourceType: llm
           targetType: llm
+          isInIteration: false
           isInLoop: false
+        zIndex: 0
       - id: rereview-parse
         source: re-review
         sourceHandle: source
@@ -121,7 +135,9 @@ workflow:
         data:
           sourceType: llm
           targetType: code
+          isInIteration: false
           isInLoop: false
+        zIndex: 0
       - id: parse-final
         source: parse-re-review
         sourceHandle: source
@@ -131,7 +147,9 @@ workflow:
         data:
           sourceType: code
           targetType: end
+          isInIteration: false
           isInLoop: false
+        zIndex: 0
 
     nodes:
       # Collect a general task plus a configurable passing score.
@@ -182,6 +200,7 @@ workflow:
           memory:
             role_prefix: {assistant: "", user: ""}
             window: {enabled: false, size: 10}
+            query_prompt_template: ""
           model:
             provider: ""
             name: ""
@@ -197,8 +216,22 @@ workflow:
             - id: generator-user
               role: user
               text: "{{#start.user_input#}}"
+          prompt_config:
+            jinja2_variables: []
+          structured_output: null
           structured_output_enabled: false
-          vision: {enabled: false}
+          retry_config:
+            enabled: false
+            max_retries: 1
+            retry_interval: 1000
+            exponential_backoff:
+              enabled: false
+              multiplier: 2
+              max_interval: 10000
+          vision:
+            enabled: false
+            configs:
+              variable_selector: []
 
       # Reviews independently and must return the fixed JSON contract.
       - id: reviewer
@@ -220,6 +253,7 @@ workflow:
           memory:
             role_prefix: {assistant: "", user: ""}
             window: {enabled: false, size: 10}
+            query_prompt_template: ""
           model:
             provider: ""
             name: ""
@@ -241,8 +275,22 @@ workflow:
 
                 Candidate result:
                 {{#generator.text#}}
+          prompt_config:
+            jinja2_variables: []
+          structured_output: null
           structured_output_enabled: false
-          vision: {enabled: false}
+          retry_config:
+            enabled: false
+            max_retries: 1
+            retry_interval: 1000
+            exponential_backoff:
+              enabled: false
+              multiplier: 2
+              max_interval: 10000
+          vision:
+            enabled: false
+            configs:
+              variable_selector: []
 
       # Converts reviewer JSON to stable workflow variables and applies threshold.
       - id: parse-review
@@ -329,10 +377,13 @@ workflow:
           outputs:
             - variable: result
               value_selector: [generator, text]
+              value_type: string
             - variable: score
               value_selector: [parse-review, score]
+              value_type: number
             - variable: review
               value_selector: [parse-review, review]
+              value_type: string
 
       # Repairs the failed candidate using the review feedback.
       - id: repair
@@ -354,6 +405,7 @@ workflow:
           memory:
             role_prefix: {assistant: "", user: ""}
             window: {enabled: false, size: 10}
+            query_prompt_template: ""
           model:
             provider: ""
             name: ""
@@ -377,8 +429,22 @@ workflow:
 
                 Review JSON:
                 {{#parse-review.review#}}
+          prompt_config:
+            jinja2_variables: []
+          structured_output: null
           structured_output_enabled: false
-          vision: {enabled: false}
+          retry_config:
+            enabled: false
+            max_retries: 1
+            retry_interval: 1000
+            exponential_backoff:
+              enabled: false
+              multiplier: 2
+              max_interval: 10000
+          vision:
+            enabled: false
+            configs:
+              variable_selector: []
 
       # Repeats independent review after repair.
       - id: re-review
@@ -400,6 +466,7 @@ workflow:
           memory:
             role_prefix: {assistant: "", user: ""}
             window: {enabled: false, size: 10}
+            query_prompt_template: ""
           model:
             provider: ""
             name: ""
@@ -421,8 +488,22 @@ workflow:
 
                 Repaired result:
                 {{#repair.text#}}
+          prompt_config:
+            jinja2_variables: []
+          structured_output: null
           structured_output_enabled: false
-          vision: {enabled: false}
+          retry_config:
+            enabled: false
+            max_retries: 1
+            retry_interval: 1000
+            exponential_backoff:
+              enabled: false
+              multiplier: 2
+              max_interval: 10000
+          vision:
+            enabled: false
+            configs:
+              variable_selector: []
 
       # Parses the second review for the final response metadata.
       - id: parse-re-review
@@ -481,10 +562,13 @@ workflow:
           outputs:
             - variable: result
               value_selector: [repair, text]
+              value_type: string
             - variable: score
               value_selector: [parse-re-review, score]
+              value_type: number
             - variable: review
               value_selector: [parse-re-review, review]
+              value_type: string
 
     viewport:
       x: 0

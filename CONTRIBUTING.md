@@ -2,6 +2,8 @@
 
 Contributions are welcome. Please keep proposals focused on reusable multi-model review workflows and their documentation.
 
+Before submitting, check existing Issues and pull requests to avoid duplicates.
+
 ## Submit an Issue
 
 Use the GitHub bug report template. Describe the problem, list the steps to reproduce it, explain the expected behavior, and include relevant Dify environment details.

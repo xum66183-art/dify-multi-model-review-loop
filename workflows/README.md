@@ -30,6 +30,26 @@ Node responsibilities:
 - **IF/ELSE Node** compares the score with the configured threshold and routes the result either to final output or to the Repair Model.
 - **Repair Model** revises failed output using the review feedback before an independent re-review.
 
+## Output Requirements
+
+The Reviewer must return one valid JSON object with no Markdown fences or explanatory text. Its output must satisfy this schema:
+
+```json
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["score", "pass", "issues", "suggestions"],
+  "properties": {
+    "score": {"type": "number", "minimum": 0, "maximum": 100},
+    "pass": {"type": "boolean"},
+    "issues": {"type": "array", "items": {"type": "string"}},
+    "suggestions": {"type": "array", "items": {"type": "string"}}
+  }
+}
+```
+
+The Code Node parses this object. If the Reviewer returns invalid JSON, the workflow uses its fallback review result rather than accepting malformed output.
+
 ## Importing into Dify
 
 1. Download `basic-review-loop.yml` from this repository.

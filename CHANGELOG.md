@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 - Preparing initial workflow templates and documentation.
 
+## [0.1.1]
+
+Fixes:
+
+- Improved reviewer JSON output validation
+- Added stricter structured output requirements
+- Updated workflow documentation
+
 ## [0.1.0]
 
 Initial public release.

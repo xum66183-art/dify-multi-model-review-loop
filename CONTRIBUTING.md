@@ -27,3 +27,5 @@ Use the GitHub feature request template. Describe the requested improvement, its
 Documentation fixes and additions are welcome. Keep instructions clear, concise, and easy for new Dify users to follow. Place detailed guides in `docs/`, workflow guidance in `workflows/README.md`, and examples in `examples/`.
 
 Open a pull request that briefly explains what the documentation change improves.
+
+Keep pull requests small enough to review and test independently.

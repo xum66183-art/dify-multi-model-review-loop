@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 
 - Preparing initial workflow templates and documentation.
 
+## [0.2.0]
+
+Added:
+
+- Demo documentation
+- Workflow explanation
+- Configurable review threshold
+- Improved workflow customization
+
 ## [0.1.1]
 
 Fixes:

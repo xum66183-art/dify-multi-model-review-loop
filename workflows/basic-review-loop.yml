@@ -175,6 +175,7 @@ workflow:
               options: []
             - variable: threshold
               label: Passing Score
+              description: Score from 0 to 100 required to accept the initial result. Defaults to 80.
               type: number
               required: true
               default: 80
@@ -314,6 +315,7 @@ workflow:
               value_selector: [start, threshold]
           outputs:
             score: {type: number, children: null}
+            threshold: {type: number, children: null}
             passed: {type: boolean, children: null}
             review: {type: string, children: null}
           code: |-
@@ -330,9 +332,11 @@ workflow:
                         "suggestions": ["Run the review again with JSON-only output."]
                     }
                 score = max(0, min(100, float(data.get("score", 0))))
+                normalized_threshold = max(0, min(100, float(threshold)))
                 return {
                     "score": score,
-                    "passed": score >= float(threshold),
+                    "threshold": normalized_threshold,
+                    "passed": score >= normalized_threshold,
                     "review": json.dumps(data, ensure_ascii=False)
                 }
 
@@ -380,6 +384,9 @@ workflow:
               value_type: string
             - variable: score
               value_selector: [parse-review, score]
+              value_type: number
+            - variable: threshold
+              value_selector: [parse-review, threshold]
               value_type: number
             - variable: review
               value_selector: [parse-review, review]
@@ -565,6 +572,9 @@ workflow:
               value_type: string
             - variable: score
               value_selector: [parse-re-review, score]
+              value_type: number
+            - variable: threshold
+              value_selector: [parse-review, threshold]
               value_type: number
             - variable: review
               value_selector: [parse-re-review, review]

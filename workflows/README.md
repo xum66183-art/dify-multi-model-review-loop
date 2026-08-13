@@ -50,12 +50,27 @@ The Reviewer must return one valid JSON object with no Markdown fences or explan
 
 The Code Node parses this object. If the Reviewer returns invalid JSON, the workflow uses its fallback review result rather than accepting malformed output.
 
+## Threshold Configuration
+
+The workflow exposes `threshold` as a numeric Start-node input. Its default value is `80`, and the Structured Score Code node normalizes it to the supported `0–100` range.
+
+- When `score >= threshold`, the initial result passes and is returned as Final Output.
+- When `score < threshold`, the result enters the Repair and Re-review path.
+
+Suggested starting points depend on the use case:
+
+- **Content generation:** use a moderate threshold such as 75–80 when minor stylistic variation is acceptable.
+- **Automated review:** use a higher threshold such as 85–90 when output is processed without frequent human checks.
+- **Agent workflows:** choose the threshold according to the risk of the downstream action; higher-impact actions generally require stricter review.
+
+Treat these values as configuration examples, not universal quality guarantees. Test the workflow with representative inputs before using it in production.
+
 ## Importing into Dify
 
 1. Download `basic-review-loop.yml` from this repository.
 2. In Dify, choose **Create App** and import the workflow DSL file.
 3. Open the imported workflow and select models available in your workspace.
 4. Configure model parameters such as temperature and token limits as appropriate for your selected models.
-5. Run a test using `user_input` and adjust the default `threshold` if needed.
+5. Run a test using `user_input` and set `threshold` for your use case. If omitted in the Dify form, the template defaults to `80`.
 
 The template intentionally contains no API keys, private model configuration, or dependency on a specific model provider. Model availability and exact import options depend on your Dify installation.

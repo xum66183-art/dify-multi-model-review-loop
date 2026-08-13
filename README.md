@@ -28,6 +28,34 @@ Pass     Repair
      Human Review
 ```
 
+## Requirements
+
+- A Dify environment with Workflow applications and DSL import support
+- At least one model available in your Dify workspace
+- Permission to configure the Generator, Reviewer, Repair, and Re-review model nodes
+
+The project is provider-agnostic: you select and configure model providers available in your own workspace. The repository does not include API keys or provider credentials.
+
+## Quick Start
+
+1. Prepare a Dify environment that supports Workflow DSL imports.
+2. Download [`workflows/basic-review-loop.yml`](workflows/basic-review-loop.yml).
+3. In Dify, create an application by importing the Workflow DSL file.
+4. Open the imported workflow and select models available in your workspace for the Generator, Reviewer, Repair, and Re-review nodes.
+5. Configure model parameters appropriate for your selected models.
+6. Set the `threshold` input. The default is `80`; results with `score >= threshold` pass, while lower scores enter Repair.
+7. Run the workflow with [`examples/input-example.md`](examples/input-example.md), then compare the review structure with [`examples/output-example.md`](examples/output-example.md).
+
+For node details and additional configuration guidance, see the [Workflow documentation](workflows/README.md).
+
+## Project Architecture
+
+See [`docs/architecture.md`](docs/architecture.md) for the project architecture and review-loop design. A node-by-node explanation is available in [`docs/workflow-overview.md`](docs/workflow-overview.md).
+
+## Demo
+
+See [`docs/demo.md`](docs/demo.md) for a complete example that follows a request through generation, review, scoring, optional repair, and final output.
+
 ## Features
 
 - Multi-model generation and review

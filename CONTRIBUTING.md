@@ -2,18 +2,26 @@
 
 Contributions are welcome. Please keep proposals focused on reusable multi-model review workflows and their documentation.
 
-## Reporting Issues
+## Submit an Issue
 
-Open a GitHub Issue and briefly describe the problem, what you expected, and any steps needed to reproduce it. Do not include API keys, private prompts, or confidential content.
+Use the GitHub bug report template. Describe the problem, list the steps to reproduce it, explain the expected behavior, and include relevant Dify environment details.
 
-## Suggesting Improvements
+Do not include API keys, private prompts, personal content, or other confidential information.
 
-Open a GitHub Issue describing the proposed improvement, why it would be useful, and how it fits the project.
+## Submit a Feature Request
 
-## Contributing Workflows
+Use the GitHub feature request template. Describe the requested improvement, its use case, and a possible solution. Keep proposals aligned with the project's provider-agnostic quality-control purpose.
 
-Workflow contributions should be reusable, clearly named, and safe to share publicly. Include a short explanation of the workflow's purpose and required configuration. Remove API keys and private content before submitting.
+## Contribute a Workflow
 
-## Contributing Documentation
+1. Fork the repository and create a focused branch.
+2. Add or update a reusable Dify Workflow DSL file under `workflows/`.
+3. Document its purpose, required inputs, configuration, and expected output.
+4. Confirm that it contains no API keys, provider credentials, private prompts, or personal content.
+5. Open a pull request describing the change and how it was tested in Dify.
 
-Documentation fixes and additions are welcome. Keep instructions clear, concise, and easy for new Dify users to follow.
+## Contribute Documentation
+
+Documentation fixes and additions are welcome. Keep instructions clear, concise, and easy for new Dify users to follow. Place detailed guides in `docs/`, workflow guidance in `workflows/README.md`, and examples in `examples/`.
+
+Open a pull request that briefly explains what the documentation change improves.

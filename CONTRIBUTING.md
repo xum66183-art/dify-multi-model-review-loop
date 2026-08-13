@@ -2,7 +2,7 @@
 
 Contributions are welcome. Please keep proposals focused on reusable multi-model review workflows and their documentation.
 
-Before submitting, check existing Issues and pull requests to avoid duplicates.
+Before submitting, check existing Issues and pull requests to avoid duplicates, and keep each contribution focused on one change.
 
 ## Submit an Issue
 
